@@ -1,47 +1,47 @@
+# lambda/index.py（修正版）
 import json
-import requests
 import os
+import urllib.request
 
 FASTAPI_URL = os.environ.get("FASTAPI_URL", "https://your-colab-url.ngrok.io/generate")
 
 def lambda_handler(event, context):
     try:
-        print("Received event:", json.dumps(event))
-
-        body = json.loads(event['body'])
-        message = body['message']
-        conversation_history = body.get('conversationHistory', [])
+        body = json.loads(event["body"])
+        message = body["message"]
+        conversation_history = body.get("conversationHistory", [])
 
         payload = {
             "message": message,
             "conversationHistory": conversation_history
         }
 
-        print("Sending request to FastAPI:", FASTAPI_URL)
-        res = requests.post(FASTAPI_URL, json=payload)
-        res.raise_for_status()
-        result = res.json()
+        data = json.dumps(payload).encode("utf-8")
+        req = urllib.request.Request(
+            FASTAPI_URL,
+            data=data,
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+
+        with urllib.request.urlopen(req) as res:
+            result = json.loads(res.read().decode("utf-8"))
 
         return {
             "statusCode": 200,
             "headers": {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "OPTIONS,POST"
+                "Access-Control-Allow-Origin": "*"
             },
             "body": json.dumps(result)
         }
 
     except Exception as e:
-        print("Error:", str(e))
         return {
             "statusCode": 500,
             "headers": {
                 "Content-Type": "application/json",
-                "Access-Control-Allow-Origin": "*",
-                "Access-Control-Allow-Headers": "Content-Type,X-Amz-Date,Authorization,X-Api-Key,X-Amz-Security-Token",
-                "Access-Control-Allow-Methods": "OPTIONS,POST"
+                "Access-Control-Allow-Origin": "*"
             },
             "body": json.dumps({
                 "success": False,
